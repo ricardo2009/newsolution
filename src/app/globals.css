@@ -1,0 +1,153 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Estilos customizados para o simulador */
+.exam-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.question-card {
+  @apply bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-blue-500;
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  @apply shadow-xl;
+  transform: translateY(-2px);
+}
+
+.option-button {
+  @apply w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200;
+}
+
+.option-button.selected {
+  @apply border-blue-500 bg-blue-100;
+}
+
+.option-button.correct {
+  @apply border-green-500 bg-green-100;
+}
+
+.option-button.incorrect {
+  @apply border-red-500 bg-red-100;
+}
+
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2;
+}
+
+.progress-fill {
+  @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+}
+
+.code-block {
+  @apply bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto;
+}
+
+.stats-card {
+  @apply bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500;
+}
+
+.difficulty-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.difficulty-beginner {
+  @apply bg-green-100 text-green-800;
+}
+
+.difficulty-intermediate {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.difficulty-advanced {
+  @apply bg-red-100 text-red-800;
+}
+
+.category-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800;
+}
+
+.explanation-box {
+  @apply bg-gray-50 border-l-4 border-blue-500 p-4 rounded-r-lg;
+}
+
+.timer-display {
+  @apply font-mono text-lg font-bold;
+}
+
+.nav-button {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+.nav-button.primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.nav-button.secondary {
+  @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+}
+
+.nav-button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .question-card {
+    @apply p-4 mb-4;
+  }
+  
+  .option-button {
+    @apply p-3 text-sm;
+  }
+  
+  .stats-card {
+    @apply p-4;
+  }
+}
