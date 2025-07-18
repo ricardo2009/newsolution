@@ -109,72 +109,190 @@ function parseQuestionsFromPDF(text: string): Question[] {
 
   console.log(`Texto limpo: ${cleanedText.length} caracteres`);
 
-  // Tentar diferentes padrões para dividir questões
-  const patterns = [
-    // Padrão mais comum: "Question 1", "Question 2", etc.
-    /(?=Question\s+\d+[:\.]?\s)/gi,
-    // Padrão alternativo: "1.", "2.", etc. no início da linha
-    /(?=^\d+[\.\)]\s+)/gm,
-    // Padrão: "Q1", "Q2", etc.
-    /(?=^Q\d+[:\.]?\s)/gm,
-    // Padrão: números seguidos de texto maiúsculo
-    /(?=^\d+\s+[A-Z][a-z])/gm,
-    // Padrão mais flexível: linha que começa com número
-    /(?=^\d+\s+)/gm
-  ];
-
-  let bestSplit: string[] = [];
-  let bestPatternName = '';
-
-  // Encontrar o padrão que gera mais divisões válidas
-  patterns.forEach((pattern, index) => {
-    const patternNames = ['Question X', 'X.', 'QX', 'X WORD', 'X '];
-    try {
-      const splits = cleanedText.split(pattern).filter(s => s.trim().length > 50);
-      console.log(`Padrão ${patternNames[index]}: ${splits.length} seções`);
-      
-      if (splits.length > bestSplit.length) {
-        bestSplit = splits;
-        bestPatternName = patternNames[index];
+  // Detectar se é formato GH-200 específico
+  const totalQuestionsMatch = cleanedText.match(/TOTAL QUESTIONS:\s*(\d+)/);
+  if (totalQuestionsMatch) {
+    const totalQuestions = parseInt(totalQuestionsMatch[1]);
+    console.log(`Detectado formato GH-200 com ${totalQuestions} questões`);
+    
+    // Dividir por "Question: X" padrão específico
+    const sections = cleanedText.split(/Question:\s*\d+/);
+    console.log(`Seções encontradas: ${sections.length}`);
+    
+    // Processar cada seção (pular a primeira que é o cabeçalho)
+    for (let i = 1; i < sections.length; i++) {
+      try {
+        const question = parseGH200QuestionSection(sections[i], i);
+        if (question) {
+          questions.push(question);
+          console.log(`Questão ${i} processada: "${question.questionText.substring(0, 50)}..."`);
+        } else {
+          console.log(`Seção ${i} não pôde ser parseada como questão`);
+        }
+      } catch (e) {
+        console.error(`Erro ao processar seção ${i}:`, e);
       }
-    } catch (e) {
-      console.error(`Erro no padrão ${patternNames[index]}:`, e);
     }
-  });
+  } else {
+    // Fallback para formato genérico
+    console.log('Usando parser genérico');
+    const patterns = [
+      /(?=Question\s+\d+[:\.]?\s)/gi,
+      /(?=^\d+[\.\)]\s+)/gm,
+      /(?=^Q\d+[:\.]?\s)/gm,
+      /(?=^\d+\s+[A-Z][a-z])/gm,
+      /(?=^\d+\s+)/gm
+    ];
 
-  // Se não encontrou padrões suficientes, tentar divisão por parágrafos duplos
-  if (bestSplit.length < 5) {
-    console.log('Tentando divisão por parágrafos duplos...');
-    bestSplit = cleanedText.split(/\n\s*\n\s*\n/).filter(s => s.trim().length > 100);
-    bestPatternName = 'Parágrafos';
-  }
+    let bestSplit: string[] = [];
+    let bestPatternName = '';
 
-  // Se ainda não encontrou, tentar divisão por parágrafos simples
-  if (bestSplit.length < 5) {
-    console.log('Tentando divisão por parágrafos simples...');
-    bestSplit = cleanedText.split(/\n\s*\n/).filter(s => s.trim().length > 100);
-    bestPatternName = 'Parágrafos simples';
-  }
-
-  console.log(`Melhor padrão: ${bestPatternName} com ${bestSplit.length} seções`);
-
-  // Processar cada seção
-  bestSplit.forEach((section, index) => {
-    try {
-      const question = parseQuestionSection(section, index + 1);
-      if (question) {
-        questions.push(question);
-        console.log(`Questão ${index + 1} processada: "${question.questionText.substring(0, 50)}..."`);
-      } else {
-        console.log(`Seção ${index + 1} não pôde ser parseada como questão`);
+    patterns.forEach((pattern, index) => {
+      const patternNames = ['Question X', 'X.', 'QX', 'X WORD', 'X '];
+      try {
+        const splits = cleanedText.split(pattern).filter(s => s.trim().length > 50);
+        console.log(`Padrão ${patternNames[index]}: ${splits.length} seções`);
+        
+        if (splits.length > bestSplit.length) {
+          bestSplit = splits;
+          bestPatternName = patternNames[index];
+        }
+      } catch (e) {
+        console.error(`Erro no padrão ${patternNames[index]}:`, e);
       }
-    } catch (e) {
-      console.error(`Erro ao processar seção ${index + 1}:`, e);
+    });
+
+    if (bestSplit.length < 5) {
+      console.log('Tentando divisão por parágrafos duplos...');
+      bestSplit = cleanedText.split(/\n\s*\n\s*\n/).filter(s => s.trim().length > 100);
+      bestPatternName = 'Parágrafos';
     }
-  });
+
+    if (bestSplit.length < 5) {
+      console.log('Tentando divisão por parágrafos simples...');
+      bestSplit = cleanedText.split(/\n\s*\n/).filter(s => s.trim().length > 100);
+      bestPatternName = 'Parágrafos simples';
+    }
+
+    console.log(`Melhor padrão: ${bestPatternName} com ${bestSplit.length} seções`);
+
+    bestSplit.forEach((section, index) => {
+      try {
+        const question = parseQuestionSection(section, index + 1);
+        if (question) {
+          questions.push(question);
+          console.log(`Questão ${index + 1} processada: "${question.questionText.substring(0, 50)}..."`);
+        } else {
+          console.log(`Seção ${index + 1} não pôde ser parseada como questão`);
+        }
+      } catch (e) {
+        console.error(`Erro ao processar seção ${index + 1}:`, e);
+      }
+    });
+  }
 
   console.log(`=== Parsing concluído: ${questions.length} questões extraídas ===`);
   return questions;
+}
+
+function parseGH200QuestionSection(section: string, questionNumber: number): Question | null {
+  try {
+    console.log(`Processando questão GH-200 ${questionNumber}`);
+    
+    const cleanSection = section.trim();
+    if (cleanSection.length < 50) {
+      console.log(`Seção ${questionNumber} muito curta`);
+      return null;
+    }
+
+    // Extrair texto da questão (antes das opções A, B, C, D)
+    const questionMatch = cleanSection.match(/^([\s\S]*?)(?=\n\s*A[\.\)]\s)/);
+    if (!questionMatch) {
+      console.log(`Questão ${questionNumber}: Não foi possível encontrar o texto da questão`);
+      return null;
+    }
+
+    let questionText = questionMatch[1]
+      .replace(/www\.dumpsplanet\.com/g, '')
+      .replace(/Exam Dumps \d+\/\d+/g, '')
+      .replace(/\n+/g, ' ')
+      .trim();
+
+    // Extrair opções
+    const options: string[] = [];
+    const optionMatches = cleanSection.match(/([A-E])[\.\)]\s([^\n]*)/g);
+    
+    if (optionMatches) {
+      const seenOptions = new Set();
+      optionMatches.forEach(match => {
+        const optionMatch = match.match(/[A-E][\.\)]\s(.+)/);
+        if (optionMatch) {
+          const optionText = optionMatch[1].trim();
+          if (!seenOptions.has(optionText) && optionText.length > 0) {
+            options.push(optionText);
+            seenOptions.add(optionText);
+          }
+        }
+      });
+    }
+
+    // Extrair resposta correta
+    let correctAnswer = 'A';
+    const answerMatch = cleanSection.match(/Answer:\s*([A-E](?:,\s*[A-E])*)/);
+    if (answerMatch) {
+      correctAnswer = answerMatch[1].trim();
+    }
+
+    // Extrair explicação
+    let explanation = '';
+    const explanationMatch = cleanSection.match(/Explanation:\s*([\s\S]*?)(?=\n\s*Question:|$)/);
+    if (explanationMatch) {
+      explanation = explanationMatch[1]
+        .replace(/www\.dumpsplanet\.com/g, '')
+        .replace(/Exam Dumps \d+\/\d+/g, '')
+        .replace(/\n+/g, ' ')
+        .trim();
+    }
+
+    // Validar dados mínimos
+    if (!questionText || questionText.length < 10) {
+      console.log(`Questão ${questionNumber}: Texto muito curto`);
+      return null;
+    }
+
+    if (options.length < 2) {
+      console.log(`Questão ${questionNumber}: Poucas opções: ${options.length}`);
+      while (options.length < 4) {
+        options.push(`Opção ${String.fromCharCode(65 + options.length)}`);
+      }
+    }
+
+    const category = detectCategory(questionText + ' ' + explanation);
+    const difficulty = detectDifficulty(questionText + ' ' + explanation);
+    const codeExample = extractCodeExample(section);
+    const relatedTopics = extractRelatedTopics(questionText + ' ' + explanation);
+
+    const question: Question = {
+      id: `gh200-q${questionNumber}`,
+      questionText: cleanText(questionText),
+      questionType: 'multiple-choice',
+      options: options.map(opt => cleanText(opt)),
+      correctAnswer,
+      explanation: cleanText(explanation) || `Questão ${questionNumber} sobre ${category}`,
+      category,
+      difficulty,
+      codeExample,
+      relatedTopics,
+      page: Math.ceil(questionNumber / 10)
+    };
+
+    console.log(`Questão ${questionNumber} criada: ${options.length} opções`);
+    return question;
+
+  } catch (error) {
+    console.error(`Erro ao processar questão GH-200 ${questionNumber}:`, error);
+    return null;
+  }
 }
 
 function parseQuestionSection(section: string, questionNumber: number): Question | null {

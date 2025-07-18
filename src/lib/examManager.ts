@@ -67,7 +67,8 @@ export class ExamManager {
       questionId,
       userAnswer,
       isCorrect,
-      timeSpent
+      timeSpent,
+      timestamp: new Date()
     };
 
     // Atualizar progresso

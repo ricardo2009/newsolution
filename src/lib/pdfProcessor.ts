@@ -18,9 +18,12 @@ export class PDFProcessor {
     try {
       const data = await pdf(pdfBuffer);
       
+      // Extrair imagens (placeholder - implementação básica)
+      const images = await this.extractImagesFromPDF(data);
+      
       return {
         text: data.text,
-        images: [], // Placeholder for image extraction
+        images: images,
         tables: [], // Placeholder for table extraction
         metadata: {
           title: data.info?.Title || 'GitHub Actions GH-200 Exam',
@@ -32,6 +35,126 @@ export class PDFProcessor {
       console.error('Erro ao processar PDF:', error);
       throw new Error('Falha ao processar o arquivo PDF');
     }
+  }
+
+  /**
+   * Extrai imagens do PDF
+   */
+  private async extractImagesFromPDF(pdfData: any): Promise<string[]> {
+    const images: string[] = [];
+    
+    try {
+      // Esta é uma implementação básica
+      // Em uma implementação real, você usaria bibliotecas como pdf2pic ou pdf-poppler
+      // para extrair imagens do PDF e convertê-las para base64 ou salvá-las como arquivos
+      
+      // Por enquanto, vamos detectar referências a imagens no texto
+      const imageReferences = this.detectImageReferences(pdfData.text);
+      
+      // Aqui você poderia implementar a extração real de imagens
+      // Por exemplo, convertendo páginas do PDF para imagens
+      
+      return imageReferences;
+    } catch (error) {
+      console.error('Erro ao extrair imagens:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Detecta se uma questão tem imagem associada
+   */
+  private detectQuestionImage(section: string): boolean {
+    const imageIndicators = [
+      'following matrix configuration',
+      'configuration shown below',
+      'workflow shown below',
+      'example shown',
+      'diagram shows',
+      'screenshot',
+      'image shows',
+      'refer to the figure',
+      'see the configuration',
+      'yaml configuration',
+      'workflow file',
+      'action configuration'
+    ];
+
+    const lowerSection = section.toLowerCase();
+    return imageIndicators.some(indicator => lowerSection.includes(indicator));
+  }
+
+  /**
+   * Gera URL da imagem baseada no contador e conteúdo da questão
+   */
+  private generateImageUrl(questionNumber: number, section: string): string {
+    // Em uma implementação real, você geraria URLs para imagens extraídas
+    // Por enquanto, vamos usar placeholders para demonstrar a funcionalidade
+    
+    if (section.toLowerCase().includes('matrix')) {
+      return `https://via.placeholder.com/600x400/2563EB/FFFFFF?text=Matrix+Configuration+Example+${questionNumber}`;
+    } else if (section.toLowerCase().includes('workflow')) {
+      return `https://via.placeholder.com/600x400/059669/FFFFFF?text=Workflow+Example+${questionNumber}`;
+    } else if (section.toLowerCase().includes('yaml')) {
+      return `https://via.placeholder.com/600x400/DC2626/FFFFFF?text=YAML+Configuration+${questionNumber}`;
+    } else if (section.toLowerCase().includes('runner')) {
+      return `https://via.placeholder.com/600x400/7C3AED/FFFFFF?text=Runner+Configuration+${questionNumber}`;
+    } else if (section.toLowerCase().includes('action')) {
+      return `https://via.placeholder.com/600x400/EA580C/FFFFFF?text=Action+Configuration+${questionNumber}`;
+    }
+    
+    return `https://via.placeholder.com/600x400/6B7280/FFFFFF?text=Question+${questionNumber}+Image`;
+  }
+
+  /**
+   * Extrai legenda da imagem
+   */
+  private extractImageCaption(section: string): string {
+    const captionPatterns = [
+      /figure\s+\d+[:\-\s]*([^\n]+)/gi,
+      /image\s+\d+[:\-\s]*([^\n]+)/gi,
+      /diagram[:\-\s]*([^\n]+)/gi,
+      /configuration[:\-\s]*([^\n]+)/gi
+    ];
+
+    for (const pattern of captionPatterns) {
+      const match = section.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    return 'Configuration example for this question';
+  }
+
+  /**
+   * Detecta referências a imagens no texto do PDF
+   */
+  private detectImageReferences(text: string): string[] {
+    const imageReferences: string[] = [];
+    
+    // Padrões para detectar referências a imagens
+    const imagePatterns = [
+      /see\s+figure\s+(\d+)/gi,
+      /refer\s+to\s+image\s+(\d+)/gi,
+      /screenshot\s+(\d+)/gi,
+      /diagram\s+(\d+)/gi,
+      /configuration\s+shown\s+below/gi,
+      /following\s+matrix\s+configuration/gi,
+      /workflow\s+example/gi,
+      /yaml\s+configuration/gi
+    ];
+
+    imagePatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          imageReferences.push(match);
+        });
+      }
+    });
+
+    return imageReferences;
   }
 
   /**
@@ -118,6 +241,19 @@ export class PDFProcessor {
       // Detectar tópicos relacionados
       const relatedTopics = this.extractRelatedTopics(questionText + ' ' + section);
 
+      // Detectar se a questão tem imagem associada
+      const hasImage = this.detectQuestionImage(section);
+      const imageUrl = hasImage ? this.generateImageUrl(questionCounter, section) : undefined;
+
+      // Criar conteúdo visual se houver imagem
+      const visualContent = hasImage ? {
+        type: 'image' as const,
+        url: imageUrl,
+        alt: `Question ${questionCounter} image`,
+        caption: this.extractImageCaption(section),
+        interactive: false
+      } : undefined;
+
       const question: Question = {
         id: `q${questionCounter}`,
         questionText,
@@ -129,7 +265,9 @@ export class PDFProcessor {
         difficulty,
         codeExample,
         relatedTopics,
-        page: Math.floor(index / 3) + 1 // Estimativa da página
+        page: Math.floor(index / 3) + 1, // Estimativa da página
+        imageUrl,
+        visualContent
       };
 
       questions.push(question);

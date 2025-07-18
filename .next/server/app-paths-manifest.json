@@ -1,7 +1,4 @@
 {
-  "/api/sample-questions/route": "app/api/sample-questions/route.js",
-  "/api/process-pdf/route": "app/api/process-pdf/route.js",
-  "/test/page": "app/test/page.js",
-  "/status/page": "app/status/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js"
 }

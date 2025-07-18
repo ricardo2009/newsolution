@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { ParsedExamData } from '@/types';
+import { QuestionPersistence } from '@/lib/questionPersistence';
 import LoadingSpinner from './LoadingSpinner';
 
 interface PDFUploaderProps {
@@ -13,6 +14,9 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ onQuestionsLoaded }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [setName, setSetName] = useState('');
+  const [tempExamData, setTempExamData] = useState<ParsedExamData | null>(null);
 
   const uploadPDF = useCallback(async (file: File) => {
     if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
@@ -82,7 +86,11 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ onQuestionsLoaded }) => {
       }
 
       console.log(`Sucesso: ${data.questions.length} questões extraídas`);
-      onQuestionsLoaded(data);
+      
+      // Salvar questões e mostrar diálogo de nomeação
+      setTempExamData(data);
+      setSetName(`Questões - ${new Date().toLocaleDateString('pt-BR')}`);
+      setShowSaveDialog(true);
     } catch (err) {
       console.error('Erro completo:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -117,6 +125,30 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ onQuestionsLoaded }) => {
       uploadPDF(e.target.files[0]);
     }
   }, [uploadPDF]);
+
+  const handleSaveQuestions = () => {
+    if (tempExamData && setName.trim()) {
+      try {
+        QuestionPersistence.saveQuestionSet(tempExamData, setName.trim());
+        setShowSaveDialog(false);
+        setTempExamData(null);
+        setSetName('');
+        onQuestionsLoaded(tempExamData);
+      } catch (error) {
+        console.error('Erro ao salvar questões:', error);
+        setError('Erro ao salvar questões. Tente novamente.');
+      }
+    }
+  };
+
+  const handleSkipSave = () => {
+    if (tempExamData) {
+      setShowSaveDialog(false);
+      setTempExamData(null);
+      setSetName('');
+      onQuestionsLoaded(tempExamData);
+    }
+  };
 
   if (isUploading) {
     return (
@@ -233,6 +265,45 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ onQuestionsLoaded }) => {
           <li>• Análise de dificuldade</li>
         </ul>
       </div>
+
+      {/* Save Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Salvar Conjunto de Questões</h3>
+            <p className="text-gray-600 mb-4">
+              Deseja salvar estas questões para uso futuro? Isso permitirá que você não precise carregar o PDF novamente.
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nome do conjunto:
+              </label>
+              <input
+                type="text"
+                value={setName}
+                onChange={(e) => setSetName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ex: GH-200 - Questões Oficiais"
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleSkipSave}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Pular
+              </button>
+              <button
+                onClick={handleSaveQuestions}
+                disabled={!setName.trim()}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

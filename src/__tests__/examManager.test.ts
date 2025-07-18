@@ -14,7 +14,7 @@ describe('ExamManager', () => {
         questionText: 'Qual é o arquivo de configuração principal do GitHub Actions?',
         questionType: 'multiple-choice',
         options: ['workflow.yml', 'action.yml', 'config.yml', 'github.yml'],
-        correctAnswer: 'workflow.yml',
+        correctAnswer: 'A',
         explanation: 'Os workflows são definidos em arquivos YAML no diretório .github/workflows/',
         category: 'Workflows',
         difficulty: 'beginner',
@@ -25,7 +25,7 @@ describe('ExamManager', () => {
         questionText: 'Qual trigger executa o workflow em push para main?',
         questionType: 'multiple-choice',
         options: ['on: push', 'on: { push: { branches: [main] } }', 'on: main', 'trigger: push'],
-        correctAnswer: 'on: { push: { branches: [main] } }',
+        correctAnswer: 'B',
         explanation: 'Para especificar branches específicas, use a sintaxe de objeto com branches.',
         category: 'Triggers',
         difficulty: 'intermediate',
@@ -48,7 +48,7 @@ describe('ExamManager', () => {
     const session = examManager.createExamSession(sampleQuestions, 'practice');
     const question = session.questions[0];
     
-    examManager.submitAnswer(session, question.id, 'workflow.yml', 30);
+    examManager.submitAnswer(session, question.id, 'A', 30);
     
     expect(session.userProgress.correctAnswers).toBe(1);
     expect(session.userProgress.score).toBe(50); // 1/2 * 100
@@ -94,10 +94,10 @@ describe('ExamManager', () => {
     const session = examManager.createExamSession(sampleQuestions, 'practice');
     
     // Responder primeira questão corretamente
-    examManager.submitAnswer(session, sampleQuestions[0].id, 'workflow.yml', 30);
+    examManager.submitAnswer(session, sampleQuestions[0].id, 'A', 30);
     
     // Responder segunda questão incorretamente
-    examManager.submitAnswer(session, sampleQuestions[1].id, 'on: push', 45);
+    examManager.submitAnswer(session, sampleQuestions[1].id, 'A', 45);
     
     const stats = examManager.getDetailedStats(session);
     
@@ -108,7 +108,7 @@ describe('ExamManager', () => {
   it('deve retornar progresso detalhado', () => {
     const session = examManager.createExamSession(sampleQuestions, 'practice');
     
-    examManager.submitAnswer(session, sampleQuestions[0].id, 'workflow.yml', 30);
+    examManager.submitAnswer(session, sampleQuestions[0].id, 'A', 30);
     
     const stats = examManager.getDetailedStats(session);
     

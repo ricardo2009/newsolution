@@ -76,7 +76,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       {/* Search Results Info */}
       {searchTerm && (
         <div className="mt-2 text-sm text-gray-600">
-          Encontradas {questions.length} questões para "{searchTerm}"
+          Encontradas {questions.length} questões para &quot;{searchTerm}&quot;
         </div>
       )}
     </div>

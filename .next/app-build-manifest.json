@@ -16,30 +16,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/process-pdf/route.js"
     ],
-    "/api/test/route": [
+    "/api/translate/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/test/route.js"
+      "static/chunks/app/api/translate/route.js"
     ],
-    "/test/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/test/page.js"
-    ],
-    "/status/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/status/page.js"
-    ],
-    "/api/status/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/status/route.js"
-    ],
-    "/api/sample-questions/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/sample-questions/route.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

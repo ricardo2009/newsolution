@@ -185,7 +185,7 @@ const StatusDashboard = () => {
           <div>
             <h3 className="font-semibold text-blue-700 mb-2">Opção 1: Questões de Exemplo</h3>
             <p className="text-blue-600 text-sm">
-              Clique em "Carregar Questões de Exemplo" na página principal para testar o simulador 
+              Clique em &quot;Carregar Questões de Exemplo&quot; na página principal para testar o simulador 
               com 8 questões sobre GitHub Actions.
             </p>
           </div>

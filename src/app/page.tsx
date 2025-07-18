@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Question, ExamSession, ParsedExamData } from '@/types';
 import ExamManager from '@/lib/examManager';
 import { ResultsExporter } from '@/lib/resultsExporter';
+import { QuestionPersistence, SavedQuestionSet } from '@/lib/questionPersistence';
 import QuestionCard from '@/components/QuestionCard';
 import ProgressBar from '@/components/ProgressBar';
 import StatsPanel from '@/components/StatsPanel';
@@ -15,6 +16,9 @@ import SampleQuestionsLoader from '@/components/SampleQuestionsLoader';
 import FilterPanel from '@/components/FilterPanel';
 import SearchBar from '@/components/SearchBar';
 import ResultsExport from '@/components/ResultsExport';
+import TranslationCacheWidget from '@/components/TranslationCacheWidget';
+import FlowchartCacheMonitor from '@/components/FlowchartCacheMonitor';
+import QuestionSetManager from '@/components/QuestionSetManager';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +26,7 @@ export default function Home() {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [examMode, setExamMode] = useState<'practice' | 'timed' | 'review'>('practice');
   const [showStats, setShowStats] = useState(false);
@@ -35,13 +40,38 @@ export default function Home() {
   const [showOnlyIncorrect, setShowOnlyIncorrect] = useState(false);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showQuestionSetManager, setShowQuestionSetManager] = useState(false);
+  const [currentQuestionSet, setCurrentQuestionSet] = useState<SavedQuestionSet | null>(null);
 
   const examManager = ExamManager.getInstance();
 
   useEffect(() => {
-    // Começar com questões de exemplo
-    initializeExam();
-  }, []);
+    // Tentar carregar conjunto de questões salvo
+    const initializeApp = async () => {
+      const savedSet = QuestionPersistence.getCurrentQuestionSet();
+      if (savedSet) {
+        setCurrentQuestionSet(savedSet);
+        setLoadedQuestions(savedSet.questions);
+        setFilteredQuestions(savedSet.questions);
+        setSearchResults(savedSet.questions);
+        
+        // Inicializar exame com questões salvas
+        const session = examManager.createExamSession(savedSet.questions, examMode);
+        setExamSession(session);
+        
+        if (session.questions.length > 0) {
+          setCurrentQuestion(session.questions[0]);
+        }
+        
+        setIsLoading(false);
+      } else {
+        // Começar com questões de exemplo
+        await initializeExam();
+      }
+    };
+    
+    initializeApp();
+  }, []); // Dependências removidas intencionalmente para executar apenas uma vez
 
   const initializeExam = async () => {
     try {
@@ -77,6 +107,12 @@ export default function Home() {
     if (session.questions.length > 0) {
       setCurrentQuestion(session.questions[0]);
     }
+    
+    // Atualizar conjunto atual se houver
+    const currentSet = QuestionPersistence.getCurrentQuestionSet();
+    if (currentSet) {
+      setCurrentQuestionSet(currentSet);
+    }
   };
 
   const handleStartWithPDF = () => {
@@ -86,6 +122,21 @@ export default function Home() {
   const handleStartWithSample = () => {
     setShowPDFUploader(false);
     initializeExam();
+  };
+
+  const handleQuestionSetSelected = (questionSet: SavedQuestionSet) => {
+    setCurrentQuestionSet(questionSet);
+    setLoadedQuestions(questionSet.questions);
+    setFilteredQuestions(questionSet.questions);
+    setSearchResults(questionSet.questions);
+    
+    // Reinicializar exame com questões do conjunto
+    const session = examManager.createExamSession(questionSet.questions, examMode);
+    setExamSession(session);
+    
+    if (session.questions.length > 0) {
+      setCurrentQuestion(session.questions[0]);
+    }
   };
 
   const generateSampleQuestions = async (): Promise<Question[]> => {
@@ -122,6 +173,27 @@ jobs:
       },
       {
         id: 'q2',
+        questionText: 'Qual evento do GitHub Actions aciona um workflow quando um pull request é aberto?',
+        questionType: 'multiple-select',
+        multipleCorrectAnswers: true,
+        options: [
+          'push',
+          'pull_request',
+          'workflow_dispatch',
+          'schedule'
+        ],
+        correctAnswer: ['B'],
+        explanation: 'O evento pull_request aciona workflows quando pull requests são abertos, sincronizados ou fechados.',
+        category: 'Workflows',
+        difficulty: 'beginner',
+        relatedTopics: ['workflows', 'eventos', 'pull-requests'],
+        codeExample: `on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches: [main, develop]`
+      },
+      {
+        id: 'q3',
         questionText: 'Quais são os tipos de eventos (triggers) que podem iniciar um workflow no GitHub Actions?',
         questionType: 'multiple-choice',
         options: [
@@ -150,7 +222,33 @@ jobs:
         default: 'staging'`
       },
       {
-        id: 'q3',
+        id: 'q4',
+        questionText: 'Quais tipos de runners estão disponíveis no GitHub Actions? (Selecione todas as opções corretas)',
+        questionType: 'multiple-select',
+        multipleCorrectAnswers: true,
+        options: [
+          'GitHub-hosted runners',
+          'Self-hosted runners',
+          'Azure DevOps runners',
+          'Larger runners (beta)'
+        ],
+        correctAnswer: ['A', 'B', 'D'],
+        explanation: 'O GitHub Actions oferece GitHub-hosted runners (ubuntu-latest, windows-latest, macos-latest), self-hosted runners (que você configura), e larger runners em beta com mais recursos. Azure DevOps runners são de outro serviço.',
+        category: 'Runners',
+        difficulty: 'intermediate',
+        relatedTopics: ['Runners', 'Infrastructure', 'Self-hosted', 'GitHub-hosted'],
+        codeExample: `jobs:
+  test:
+    runs-on: ubuntu-latest    # GitHub-hosted
+  
+  build:
+    runs-on: self-hosted      # Self-hosted
+  
+  deploy:
+    runs-on: ubuntu-latest-4-cores  # Larger runner`
+      },
+      {
+        id: 'q5',
         questionText: 'Como você pode acessar secrets em um workflow do GitHub Actions?',
         questionType: 'multiple-choice',
         options: [
@@ -231,8 +329,14 @@ jobs:
     ];
   };
 
-  const handleAnswerSelect = (answer: string) => {
-    setSelectedAnswer(answer);
+  const handleAnswerSelect = (answers: string[]) => {
+    setSelectedAnswers(answers);
+    setSelectedAnswer(answers[0] || null); // Manter compatibilidade com código existente
+  };
+
+  const handleSubmitAnswer = () => {
+    if (selectedAnswers.length === 0) return;
+    
     setHasAnswered(true);
     setShowExplanation(true);
     
@@ -240,7 +344,7 @@ jobs:
       const updatedSession = examManager.submitAnswer(
         examSession,
         currentQuestion.id,
-        answer,
+        selectedAnswers.length === 1 ? selectedAnswers[0] : selectedAnswers,
         60 // tempo simulado
       );
       setExamSession(updatedSession);
@@ -257,6 +361,7 @@ jobs:
       
       // Reset estado da questão
       setSelectedAnswer(null);
+      setSelectedAnswers([]);
       setHasAnswered(false);
       setShowExplanation(false);
     }
@@ -272,6 +377,7 @@ jobs:
       
       // Reset estado da questão
       setSelectedAnswer(null);
+      setSelectedAnswers([]);
       setHasAnswered(false);
       setShowExplanation(false);
     }
@@ -539,6 +645,12 @@ jobs:
                 startTime={examSession.startTime}
               />
               <button
+                onClick={() => setShowQuestionSetManager(true)}
+                className="text-purple-600 hover:text-purple-800 font-medium"
+              >
+                📚 Gerenciar Conjuntos
+              </button>
+              <button
                 onClick={() => setShowPDFUploader(true)}
                 className="text-green-600 hover:text-green-800 font-medium"
               >
@@ -572,9 +684,16 @@ jobs:
         {/* Filters and Search */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Questões ({filteredQuestions.length})
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">
+                Questões ({filteredQuestions.length})
+              </h2>
+              {currentQuestionSet && (
+                <p className="text-sm text-gray-600">
+                  Conjunto atual: <strong>{currentQuestionSet.name}</strong>
+                </p>
+              )}
+            </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -608,10 +727,11 @@ jobs:
           <div className="lg:col-span-3">
             <QuestionCard
               question={currentQuestion}
-              selectedAnswer={selectedAnswer}
+              selectedAnswers={selectedAnswers}
               hasAnswered={hasAnswered}
               showExplanation={showExplanation}
               onAnswerSelect={handleAnswerSelect}
+              onSubmitAnswer={handleSubmitAnswer}
               onToggleFavorite={handleToggleFavorite}
               isFavorite={favorites.has(currentQuestion.id)}
             />
@@ -711,6 +831,26 @@ jobs:
           />
         </div>
       </div>
+
+      {/* Widget do Cache de Tradução */}
+      <TranslationCacheWidget 
+        position="bottom-right"
+        className="transition-all duration-300"
+      />
+
+      {/* Monitor do Cache de Fluxogramas */}
+      <FlowchartCacheMonitor 
+        position="bottom-left"
+        className="transition-all duration-300"
+      />
+
+      {/* Question Set Manager */}
+      {showQuestionSetManager && (
+        <QuestionSetManager
+          onSetSelected={handleQuestionSetSelected}
+          onClose={() => setShowQuestionSetManager(false)}
+        />
+      )}
     </div>
   );
 }
