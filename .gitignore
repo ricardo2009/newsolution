@@ -1,4 +1,27 @@
-node_modules
-.next/cache/
-node_modules/
+# Next.js build & cache
 .next/
+!.next/server/app/page.js  # se quiser manter arquivos específicos
+
+# Webpack hot updates
+*.hot-update.js
+*.hot-update.json
+*.pack.gz
+
+# Ambiente e IDE
+.env.local
+.env.example
+.vscode/
+
+# Dependências
+node_modules/
+
+# Logs e arquivos temporários
+*.log
+output.log
+
+# Arquivos duplicados ou com metadados
+*.pdf:Zone.Identifier
+GH-200-Full-File[1].pdf
+
+# Ignorar tudo em vendor-chunks
+.next/server/vendor-chunks/
